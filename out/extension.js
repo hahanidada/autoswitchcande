@@ -1,29 +1,61 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.activate = activate;
+exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
-import { execFile } from 'node:child_process';
+const vscode = __importStar(require("vscode"));
+const node_child_process_1 = require("node:child_process");
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
-
+function activate(context) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "autoswitchcande" is now active!');
-
+    console.log('恭喜，插件已经激活了！！！！');
     //实现 Python 场景识别-----先完成“代码／注释／字符串”三类
-    function pythonSceneRecognition(position:object, currentLine:String) {
-        const line = String(currentLine);
+    function pythonSceneRecognition(position, currentLine) {
+        const line = currentLine;
         // VS Code 的 character 从 0 开始，表示光标所在的插入位置。
-        const point = position as vscode.Position;
-        const cursor = Math.max(0, Math.min(point.character, line.length));
-        let scene: '代码' | '注释' | '字符串' = '代码';
-        let delimiter: string | null = null;
+        const cursor = Math.max(0, Math.min(position.character, line.length));
+        let scene = '代码';
+        let delimiter = null;
         let index = 0;
-
         // 只扫描光标左侧；不读取其他行，也不读取编辑器全局状态。
         while (index < cursor) {
             const character = line[index];
-
             if (delimiter === null) {
                 // 只有字符串外的 # 才开启注释，后续引号不再影响分类。
                 if (character === '#') {
@@ -34,18 +66,17 @@ export function activate(context: vscode.ExtensionContext) {
                     const triple = character.repeat(3);
                     delimiter = line.startsWith(triple, index) ? triple : character;
                     index += delimiter.length;
-                } else {
+                }
+                else {
                     index++;
                 }
                 continue;
             }
-
             // 跳过转义字符；连续反斜杠按两字符一组处理。
-            if (character === '\\') { 
+            if (character === '\\') {
                 index += 2;
                 continue;
             }
-
             if (line.startsWith(delimiter, index)) {
                 const end = index + delimiter.length;
                 // 光标越过整个结束引号后才恢复代码场景。
@@ -55,44 +86,33 @@ export function activate(context: vscode.ExtensionContext) {
                 index = end;
                 continue;
             }
-
             index++;
         }
-
         if (scene !== '注释') {
             scene = delimiter === null ? '代码' : '字符串';
         }
-
         // 代码切英文，注释和字符串切中文；失败时记录错误。
         const mode = scene === '代码' ? 'en' : 'zh';
-        void requestIme(mode).catch((error: unknown) => {
+        void requestIme(mode).catch((error) => {
             console.error('输入法切换失败：', error);
         });
-
         return scene;
     }
     // 调用c#脚本获取系统现在输入法，以及切换中英文输入法
     const imeToolPath = context.asAbsolutePath('native/ImeMode.exe');
-
-    function requestIme(action: 'get' | 'zh' | 'en'): Promise<string> {
+    function requestIme(action) {
         return new Promise((resolve, reject) => {
-            execFile(
-                imeToolPath,
-                [action],
-                {
-                    windowsHide: true,
-                    timeout: 3000,
-                    encoding: 'utf8'
-                },
-                (error, stdout, stderr) => {
-                    if (error) {
-                        reject(new Error(stderr.trim() || error.message));
-                        return;
-                    }
-
-                    resolve(stdout.trim());
+            (0, node_child_process_1.execFile)(imeToolPath, [action], {
+                windowsHide: true,
+                timeout: 3000,
+                encoding: 'utf8'
+            }, (error, stdout, stderr) => {
+                if (error) {
+                    reject(new Error(stderr.trim() || error.message));
+                    return;
                 }
-            );
+                resolve(stdout.trim());
+            });
         });
     }
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 0);
@@ -129,19 +149,21 @@ export function activate(context: vscode.ExtensionContext) {
             return;
         }
         const position = event.selections[0]?.active;
+        // 先确认位置存在，再读取当前行。
+        if (!position) {
+            return;
+        }
         console.log("position 的类型是：", typeof (position));
         const currentLine = document.lineAt(position.line).text;
         console.log("currentLine 的类型是：", typeof (currentLine));
         console.log('当前行内容：', currentLine);
-        //当位置存在时，再读取行号
-        if (!position) {
-            return;
-        }
         console.log(`语言：${document.languageId}，` +
             `行：${position.line + 1}，` +
             `列：${position.character + 1}`);
-
-        pythonSceneRecognition(position, currentLine)
+        // Markdown 的识别规则后续单独实现。
+        if (document.languageId === 'python') {
+            pythonSceneRecognition(position, currentLine);
+        }
     });
     const disposable = vscode.commands.registerCommand('autoswitchcande.helloWorld', () => {
         // The code you place here will be executed every time your command is executed
@@ -152,7 +174,9 @@ export function activate(context: vscode.ExtensionContext) {
     });
     // c# 脚本是否生效
     const testC_Script = vscode.commands.registerCommand('autoswitchcande.testCScript', () => {
-        requestIme('zh');
+        void requestIme('zh').catch((error) => {
+            console.error('输入法切换失败：', error);
+        });
     });
     updateStatusBar();
     statusBar.show();
@@ -166,3 +190,4 @@ export function activate(context: vscode.ExtensionContext) {
 function deactivate() {
     console.log("插件已经关闭激活了");
 }
+//# sourceMappingURL=extension.js.map

@@ -13,7 +13,7 @@
     "onLanguage:python", 
     "onLanguage:markdown"
   ],
-  "main": "./out/extension.ts",
+  "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
