@@ -12,7 +12,64 @@ export function activate(context: vscode.ExtensionContext) {
 
     //实现 Python 场景识别-----先完成“代码／注释／字符串”三类
     function pythonSceneRecognition(position:object, currentLine:String) {
-    
+        const line = String(currentLine);
+        // VS Code 的 character 从 0 开始，表示光标所在的插入位置。
+        const point = position as vscode.Position;
+        const cursor = Math.max(0, Math.min(point.character, line.length));
+        let scene: '代码' | '注释' | '字符串' = '代码';
+        let delimiter: string | null = null;
+        let index = 0;
+
+        // 只扫描光标左侧；不读取其他行，也不读取编辑器全局状态。
+        while (index < cursor) {
+            const character = line[index];
+
+            if (delimiter === null) {
+                // 只有字符串外的 # 才开启注释，后续引号不再影响分类。
+                if (character === '#') {
+                    scene = '注释';
+                    break;
+                }
+                if (character === '"' || character === "'") {
+                    const triple = character.repeat(3);
+                    delimiter = line.startsWith(triple, index) ? triple : character;
+                    index += delimiter.length;
+                } else {
+                    index++;
+                }
+                continue;
+            }
+
+            // 跳过转义字符；连续反斜杠按两字符一组处理。
+            if (character === '\\') {
+                index += 2;
+                continue;
+            }
+
+            if (line.startsWith(delimiter, index)) {
+                const end = index + delimiter.length;
+                // 光标越过整个结束引号后才恢复代码场景。
+                if (end <= cursor) {
+                    delimiter = null;
+                }
+                index = end;
+                continue;
+            }
+
+            index++;
+        }
+
+        if (scene !== '注释') {
+            scene = delimiter === null ? '代码' : '字符串';
+        }
+
+        // 代码切英文，注释和字符串切中文；失败时记录错误。
+        const mode = scene === '代码' ? 'en' : 'zh';
+        void requestIme(mode).catch((error: unknown) => {
+            console.error('输入法切换失败：', error);
+        });
+
+        return scene;
     }
     // 调用c#脚本获取系统现在输入法，以及切换中英文输入法
     const imeToolPath = context.asAbsolutePath('native/ImeMode.exe');
@@ -83,6 +140,8 @@ export function activate(context: vscode.ExtensionContext) {
         console.log(`语言：${document.languageId}，` +
             `行：${position.line + 1}，` +
             `列：${position.character + 1}`);
+
+        pythonSceneRecognition(position, currentLine)
     });
     const disposable = vscode.commands.registerCommand('autoswitchcande.helloWorld', () => {
         // The code you place here will be executed every time your command is executed
