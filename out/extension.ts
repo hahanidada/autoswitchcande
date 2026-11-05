@@ -1,71 +1,41 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = activate;
-exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-const vscode = __importStar(require("vscode"));
-const node_child_process_1 = require("node:child_process");
+import * as vscode from 'vscode';
+import { execFile } from 'node:child_process';
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
-function activate(context) {
+export function activate(context: vscode.ExtensionContext) {
+
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-    console.log('恭喜，插件已经激活了！！！！');
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
+    console.log('Congratulations, your extension "autoswitchcande" is now active!');
+
     //实现 Python 场景识别-----先完成“代码／注释／字符串”三类
-    function pythonSceneRecognition(position, currentLine) {
+    function pythonSceneRecognition(position:object, currentLine:String) {
+    
     }
     // 调用c#脚本获取系统现在输入法，以及切换中英文输入法
     const imeToolPath = context.asAbsolutePath('native/ImeMode.exe');
-    function requestIme(action) {
+
+    function requestIme(action: 'get' | 'zh' | 'en'): Promise<string> {
         return new Promise((resolve, reject) => {
-            (0, node_child_process_1.execFile)(imeToolPath, [action], {
-                windowsHide: true,
-                timeout: 3000,
-                encoding: 'utf8'
-            }, (error, stdout, stderr) => {
-                if (error) {
-                    reject(new Error(stderr.trim() || error.message));
-                    return;
+            execFile(
+                imeToolPath,
+                [action],
+                {
+                    windowsHide: true,
+                    timeout: 3000,
+                    encoding: 'utf8'
+                },
+                (error, stdout, stderr) => {
+                    if (error) {
+                        reject(new Error(stderr.trim() || error.message));
+                        return;
+                    }
+
+                    resolve(stdout.trim());
                 }
-                resolve(stdout.trim());
-            });
+            );
         });
     }
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 0);
@@ -137,4 +107,3 @@ function activate(context) {
 function deactivate() {
     console.log("插件已经关闭激活了");
 }
-//# sourceMappingURL=extension.js.map
