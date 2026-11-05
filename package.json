@@ -9,13 +9,24 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [ 
+    "onLanguage:python", 
+    "onLanguage:markdown"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "autoswitchcande.helloWorld",
-        "title": "Test Function"
+        "title": "Test Function" 
+      },
+      {
+        "command": "autoswitchcande.toggleEnabled",
+        "title": "中英文自动切换：启用或暂停"
+      },
+      {
+        "command": "autoswitchcande.testCScript",
+        "title": "Test C# Script"
       }
     ]
   },
