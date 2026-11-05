@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             // 跳过转义字符；连续反斜杠按两字符一组处理。
-            if (character === '\\') {
+            if (character === '\\') { 
                 index += 2;
                 continue;
             }
