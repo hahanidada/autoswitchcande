@@ -50,6 +50,161 @@ function activate(context) {
     // The commandId parameter must match the command field in package.json
     //实现 Python 场景识别-----先完成“代码／注释／字符串”三类
     function pythonSceneRecognition(position, currentLine) {
+        // 单行文本不足以识别多行字符串，因此读取完整文档和光标偏移。
+        const editor = vscode.window.activeTextEditor;
+        if (!editor || editor.document.languageId !== 'python' || !position) {
+            return;
+        }
+        const source = editor.document.getText();
+        const cursor = editor.document.offsetAt(position);
+        const stack = [{ kind: 'code', brackets: [] }];
+        const prefixes = new Set(['r', 'u', 'b', 'f', 'br', 'rb', 'fr', 'rf']);
+        const brackets = { '(': ')', '[': ']', '{': '}' };
+        let i = 0;
+
+        function enterString(start, prefix = '') {
+            const quote = source[start];
+            const delimiter = source.startsWith(quote.repeat(3), start) ? quote.repeat(3) : quote;
+            stack.push({
+                kind: 'string', delimiter,
+                triple: delimiter.length === 3,
+                formatted: prefix.toLowerCase().includes('f'),
+                raw: prefix.toLowerCase().includes('r')
+            });
+            return Math.min(start + delimiter.length, cursor);
+        }
+
+        while (i < cursor) {
+            const frame = stack[stack.length - 1];
+            const ch = source[i];
+
+            if (frame.kind === 'comment') {
+                if (ch === '\r' || ch === '\n') {
+                    stack.pop();
+                }
+                i++;
+                continue;
+            }
+
+            if (frame.kind === 'string') {
+                if (source.startsWith(frame.delimiter, i)) {
+                    const end = i + frame.delimiter.length;
+                    if (end <= cursor) {
+                        stack.pop();
+                    }
+                    i = Math.min(end, cursor);
+                    continue;
+                }
+                if (ch === '\\') {
+                    if (frame.formatted && !frame.raw && source.startsWith('\\N{', i)) {
+                        const end = source.indexOf('}', i + 3);
+                        if (end >= 0) {
+                            i = Math.min(end + 1, cursor);
+                            continue;
+                        }
+                    }
+                    if (i + 1 < source.length) {
+                        if (frame.formatted && '{}'.includes(source[i + 1])) {
+                            i++;
+                        } else {
+                            i = Math.min(i + (source.startsWith('\r\n', i + 1) ? 3 : 2), cursor);
+                        }
+                    } else {
+                        i++;
+                    }
+                    continue;
+                }
+                if ((ch === '\r' || ch === '\n') && !frame.triple) {
+                    stack.pop();
+                    continue;
+                }
+                if (frame.formatted && '{}'.includes(ch)) {
+                    if (source.startsWith(ch.repeat(2), i)) {
+                        i = Math.min(i + 2, cursor);
+                        continue;
+                    }
+                    if (ch === '{') {
+                        stack.push({ kind: 'expression', brackets: [], raw: frame.raw });
+                    }
+                }
+                i++;
+                continue;
+            }
+
+            if (frame.kind === 'format') {
+                if (ch === '{') {
+                    stack.push({ kind: 'expression', brackets: [], raw: frame.raw });
+                } else if (ch === '}') {
+                    stack.pop();
+                } else if (ch === '\\' && i + 1 < source.length) {
+                    if (!frame.raw && source.startsWith('\\N{', i)) {
+                        const end = source.indexOf('}', i + 3);
+                        if (end >= 0) {
+                            i = Math.min(end + 1, cursor);
+                            continue;
+                        }
+                    }
+                    if (!'{}'.includes(source[i + 1])) {
+                        i = Math.min(i + 2, cursor);
+                        continue;
+                    }
+                }
+                i++;
+                continue;
+            }
+
+            if (ch === '#') {
+                stack.push({ kind: 'comment' });
+                i++;
+                continue;
+            }
+            if (ch === '"' || ch === "'") {
+                i = enterString(i);
+                continue;
+            }
+
+            const point = String.fromCodePoint(source.codePointAt(i));
+            if (/[_\p{ID_Start}]/u.test(point)) {
+                let end = i + point.length;
+                while (end < source.length) {
+                    const next = String.fromCodePoint(source.codePointAt(end));
+                    if (!/[_\p{ID_Continue}]/u.test(next)) {
+                        break;
+                    }
+                    end += next.length;
+                }
+                const prefix = end - i <= 2 ? source.slice(i, end).toLowerCase() : '';
+                if (prefixes.has(prefix) && end < cursor && (source[end] === '"' || source[end] === "'")) {
+                    i = enterString(end, prefix);
+                } else {
+                    i = Math.min(end, cursor);
+                }
+                continue;
+            }
+
+            if (frame.kind === 'expression') {
+                if (Object.hasOwn(brackets, ch)) {
+                    frame.brackets.push(brackets[ch]);
+                } else if (frame.brackets.length && ch === frame.brackets[frame.brackets.length - 1]) {
+                    frame.brackets.pop();
+                } else if (ch === '}' && frame.brackets.length === 0) {
+                    stack.pop();
+                } else if (ch === ':' && frame.brackets.length === 0) {
+                    if (source.startsWith(':=', i)) {
+                        i = Math.min(i + 2, cursor);
+                        continue;
+                    }
+                    frame.kind = 'format';
+                }
+            }
+            i++;
+        }
+
+        // 原算法返回“注释”时切中文，返回“代码”或“字符串”时切英文。
+        const action = stack[stack.length - 1].kind === 'comment' ? 'zh' : 'en';
+        return requestIme(action).catch(error => {
+            console.error('输入法切换失败：', error);
+        });
     }
     // 调用c#脚本获取系统现在输入法，以及切换中英文输入法
     const imeToolPath = context.asAbsolutePath('native/ImeMode.exe');
@@ -102,17 +257,22 @@ function activate(context) {
             return;
         }
         const position = event.selections[0]?.active;
-        console.log("position 的类型是：", typeof (position));
+        // console.log("position 的类型是：", typeof (position));
+
+
         const currentLine = document.lineAt(position.line).text;
-        console.log("currentLine 的类型是：", typeof (currentLine));
-        console.log('当前行内容：', currentLine);
+
+        // console.log("currentLine 的类型是：", typeof (currentLine));
+        // console.log('当前行内容：', currentLine);
         //当位置存在时，再读取行号
         if (!position) {
             return;
         }
-        console.log(`语言：${document.languageId}，` +
-            `行：${position.line + 1}，` +
-            `列：${position.character + 1}`);
+        // console.log(`语言：${document.languageId}，` +
+        //     `行：${position.line + 1}，` +
+        //     `列：${position.character + 1}`);
+
+        pythonSceneRecognition(position, document)
     });
     const disposable = vscode.commands.registerCommand('autoswitchcande.helloWorld', () => {
         // The code you place here will be executed every time your command is executed
