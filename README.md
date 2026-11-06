@@ -2,6 +2,8 @@
 
 这个项目准备实现一个 VS Code 插件：根据编辑位置自动切换中英文输入状态，让写代码、注释和文档时少一些手动切换。
 
+npx @vscode/vsce package 打包
+
 **当前状态：项目已有 TypeScript 扩展的基础结构，自动切换功能尚未实现。** 目前唯一的示例命令是 `Test Function`，执行后显示 `Hello World from autoSwitchCandE!`。下面依据当前文件内容介绍项目，方便边开发边学习。
 
 ## 1. 项目结构
