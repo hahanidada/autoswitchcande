@@ -70,9 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
 
         return scene;
     }
+
     // 调用c#脚本获取系统现在输入法，以及切换中英文输入法
     const imeToolPath = context.asAbsolutePath('native/ImeMode.exe');
-
     function requestIme(action: 'get' | 'zh' | 'en'): Promise<string> {
         return new Promise((resolve, reject) => {
             execFile(
@@ -94,6 +94,8 @@ export function activate(context: vscode.ExtensionContext) {
             );
         });
     }
+
+    //创建一个状态栏Bar，参数数字0表示优先级
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 0);
     // 当前是否允许自动处理
     let enabled = true;
@@ -103,8 +105,8 @@ export function activate(context: vscode.ExtensionContext) {
     // 根据当前状态刷新文字和悬停提示
     function updateStatusBar() {
         statusBar.text = enabled
-            ? '自动输入：已启用'
-            : '自动输入：已暂停';
+            ? '自动切换：已启用'
+            : '自动切换：已暂停';
         statusBar.tooltip = enabled
             ? '点击暂停自动切换'
             : '点击恢复自动切换';
@@ -158,8 +160,11 @@ export function activate(context: vscode.ExtensionContext) {
             console.error('输入法切换失败：', error);
         });
     });
+    // 插件激活就显示StatusBar
     updateStatusBar();
     statusBar.show();
+
+    //注册方法
     context.subscriptions.push(disposable);
     context.subscriptions.push(selectionListener);
     context.subscriptions.push(statusBar);
