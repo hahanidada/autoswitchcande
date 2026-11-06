@@ -50,17 +50,30 @@ function activate(context) {
         const line = currentLine;
         // VS Code 的 character 从 0 开始，表示光标所在的插入位置。
         const cursor = Math.max(0, Math.min(position.character, line.length));
-        let scene = '代码';
+        function handleImeError(error) {
+            console.error('输入法切换失败：', error);
+        }
+        // 只取紧邻的左右各一个 Unicode 字符，兼容占两个 UTF-16 单元的汉字。
+        const leftStart = cursor > 1
+            && /[\uD800-\uDBFF][\uDC00-\uDFFF]/.test(line.slice(cursor - 2, cursor))
+            ? cursor - 2 : Math.max(0, cursor - 1);
+        const left = line.slice(leftStart, cursor);
+        const rightCodePoint = line.codePointAt(cursor);
+        const right = rightCodePoint === undefined ? '' : String.fromCodePoint(rightCodePoint);
+        // 邻接汉字优先：无需继续判断语法场景。
+        if (/\p{Script=Han}/u.test(left + right)) {
+            void requestIme('zh').catch(handleImeError);
+            return 'zh';
+        }
         let delimiter = null;
         let index = 0;
-        // 只扫描光标左侧；不读取其他行，也不读取编辑器全局状态。
+        // 只扫描光标左侧；字符串外遇到 # 即可确定为注释。
         while (index < cursor) {
             const character = line[index];
             if (delimiter === null) {
-                // 只有字符串外的 # 才开启注释，后续引号不再影响分类。
                 if (character === '#') {
-                    scene = '注释';
-                    break;
+                    void requestIme('zh').catch(handleImeError);
+                    return 'zh';
                 }
                 if (character === '"' || character === "'") {
                     const triple = character.repeat(3);
@@ -72,14 +85,13 @@ function activate(context) {
                 }
                 continue;
             }
-            // 跳过转义字符；连续反斜杠按两字符一组处理。
+            // 跳过转义字符，避免把转义引号误判为字符串结束。
             if (character === '\\') {
                 index += 2;
                 continue;
             }
             if (line.startsWith(delimiter, index)) {
                 const end = index + delimiter.length;
-                // 光标越过整个结束引号后才恢复代码场景。
                 if (end <= cursor) {
                     delimiter = null;
                 }
@@ -88,15 +100,13 @@ function activate(context) {
             }
             index++;
         }
-        if (scene !== '注释') {
-            scene = delimiter === null ? '代码' : '字符串';
+        // 扫描到光标后仍未闭合，才能确定光标位于字符串内。
+        if (delimiter !== null) {
+            void requestIme('zh').catch(handleImeError);
+            return 'zh';
         }
-        // 代码切英文，注释和字符串切中文；失败时记录错误。
-        const mode = scene === '代码' ? 'en' : 'zh';
-        void requestIme(mode).catch((error) => {
-            console.error('输入法切换失败：', error);
-        });
-        return scene;
+        void requestIme('en').catch(handleImeError);
+        return 'en';
     }
     // 调用c#脚本获取系统现在输入法，以及切换中英文输入法
     const imeToolPath = context.asAbsolutePath('native/ImeMode.exe');
@@ -115,6 +125,7 @@ function activate(context) {
             });
         });
     }
+    //创建一个状态栏Bar，参数数字0表示优先级
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 0);
     // 当前是否允许自动处理
     let enabled = true;
@@ -124,8 +135,8 @@ function activate(context) {
     // 根据当前状态刷新文字和悬停提示
     function updateStatusBar() {
         statusBar.text = enabled
-            ? '自动输入：已启用'
-            : '自动输入：已暂停';
+            ? '自动切换：已启用'
+            : '自动切换：已暂停';
         statusBar.tooltip = enabled
             ? '点击暂停自动切换'
             : '点击恢复自动切换';
@@ -178,8 +189,10 @@ function activate(context) {
             console.error('输入法切换失败：', error);
         });
     });
+    // 插件激活就显示StatusBar
     updateStatusBar();
     statusBar.show();
+    //注册方法
     context.subscriptions.push(disposable);
     context.subscriptions.push(selectionListener);
     context.subscriptions.push(statusBar);

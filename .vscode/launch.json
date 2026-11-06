@@ -1,0 +1,38 @@
+// A launch configuration that compiles the extension and then opens it inside a new window
+// Use IntelliSense to learn about possible attributes.
+// Hover to view descriptions of existing attributes.
+// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			// 先独立启动开发宿主，再附加调试器，绕过 F5 启动阶段的崩溃。
+			"name": "Run Extension (Attach)",
+			"type": "node",
+			"request": "attach",
+			"address": "127.0.0.1",
+			"port": 9333,
+			"timeout": 30000,
+			"autoAttachChildProcesses": false,
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
+			"skipFiles": [
+				"<node_internals>/**"
+			],
+			"preLaunchTask": "Start Extension Host (Inspector)"
+		},
+		{
+			"name": "Run Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--extensionDevelopmentPath=${workspaceFolder}"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
+			"preLaunchTask": "${defaultBuildTask}"
+		}
+	]
+}
