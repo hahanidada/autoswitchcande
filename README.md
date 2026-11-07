@@ -49,20 +49,6 @@ C# 辅助程序定位前台 VS Code 的焦点控件，通过默认 IME 窗口和
 
 ## 编译与调试
 
-以下命令均在项目根目录执行，需要准备 Node.js、npm 和 VS Code：
-
-```powershell
-npm ci
-npm run compile
-```
-
-日常修改 `src/`，由编译生成 `out/`。持续编译和代码检查命令：
-
-```powershell
-npm run watch
-npm run lint
-```
-
 修改 C# 源码后，需要单独重新生成辅助程序；`npm run compile` 只编译 TypeScript。当前 Windows 环境可使用：
 
 ```powershell
@@ -72,7 +58,6 @@ npm run lint
 ```
 
 调试方式：
-
 - **运行功能**：选择 `Run Extension`，按 **Ctrl+F5** 打开扩展开发宿主，再打开 Python 文件。该启动方式已在当前环境验证可保持窗口打开。
 - **断点调试**：当前环境直接 F5 曾出现扩展宿主启动崩溃，可选择备用配置 **Run Extension (Attach)** 后按 F5。它先编译并启动开发宿主，再连接 `127.0.0.1:9333`；实际连接稳定性仍需验证。
 - 使用附加方式前，关闭上一轮开发宿主，避免端口冲突；停止附加调试后，开发窗口可能需要手动关闭。初始化可能早于附加完成，建议先在光标监听回调中设置断点。
