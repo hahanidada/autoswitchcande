@@ -1,3 +1,5 @@
+# **注意** 如果vscode版本过低，修改package.json 中 engines字段内，vscode版本就可以进行调试了
+
 # autoSwitchCandE
 
 根据 Python 文件中的光标位置，自动切换微软拼音的中英文模式，减少写代码、注释和字符串时的手动切换。
