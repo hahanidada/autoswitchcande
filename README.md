@@ -8,6 +8,11 @@
 2. 选择微软拼音，打开 `.py` 文件；插件激活后默认启用。
 3. 状态栏右侧显示 **自动切换：已启用**。点击变为 **自动切换：已暂停**，再次点击恢复；恢复后的下一次光标移动会重新判断输入模式。
 
+4. 切换按钮和提示功能如下图所示：
+<img width="2561" height="596" alt="image" src="https://github.com/user-attachments/assets/a9dce060-0491-42c5-8126-dd5882f493d2" />
+<img width="2560" height="1392" alt="image" src="https://github.com/user-attachments/assets/539c84d5-3419-438c-b3c8-f63e8118041a" />
+
+
 当前根据光标或选区变化触发判断，规则按以下优先级执行：
 
 | 使用场景 | 输入模式 |
