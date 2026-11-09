@@ -15,6 +15,22 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "icons": {
+      "autoswitchcande-enabled": {
+        "description": "中英文自动切换已启用",
+        "default": {
+          "fontPath": "./resources/status-icons.woff",
+          "fontCharacter": "\\E001"
+        }
+      },
+      "autoswitchcande-disabled": {
+        "description": "中英文自动切换已暂停",
+        "default": {
+          "fontPath": "./resources/status-icons.woff",
+          "fontCharacter": "\\E002"
+        }
+      }
+    },
     "commands": [
       {
         "command": "autoswitchcande.helloWorld",

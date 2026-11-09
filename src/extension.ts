@@ -2,6 +2,8 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { execFile } from 'node:child_process';
+import { MarkdownSceneRecognition } from './File_matching_rules/MarkdownSceneRecognition';
+
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -109,7 +111,7 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     //创建一个状态栏Bar，参数数字0表示优先级
-    const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 0);
+    const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 500);
     // 当前是否允许自动处理
     let enabled = true;
     statusBar.name = '中英文自动切换';
@@ -118,11 +120,15 @@ export function activate(context: vscode.ExtensionContext) {
     // 根据当前状态刷新文字和悬停提示
     function updateStatusBar() {
         statusBar.text = enabled
-            ? '自动切换：已启用'
-            : '自动切换：已暂停';
+            ? '$(autoswitchcande-enabled)'
+            : '$(autoswitchcande-disabled)';
         statusBar.tooltip = enabled
-            ? '点击暂停自动切换'
-            : '点击恢复自动切换';
+            ? '点击暂停'
+            : '点击恢复';
+        statusBar.accessibilityInformation = {
+            label: enabled ? '自动切换：已启用' : '自动切换：已暂停',
+            role: 'button'
+        };
     }
     //注册点击和启用命令
     const toggleCommand = vscode.commands.registerCommand('autoswitchcande.toggleEnabled', () => {
@@ -155,9 +161,10 @@ export function activate(context: vscode.ExtensionContext) {
             `行：${position.line + 1}，` +
             `列：${position.character + 1}`);
 
-        // Markdown 的识别规则后续单独实现。
         if (document.languageId === 'python') {
             pythonSceneRecognition(position, currentLine);
+        } else if (document.languageId === 'markdown') {
+            MarkdownSceneRecognition(position, document, requestIme);
         }
     });
     const disposable = vscode.commands.registerCommand('autoswitchcande.helloWorld', () => {
