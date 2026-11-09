@@ -1,3 +1,5 @@
+# **注意** 如果vscode版本过低，修改package.json 中 engines字段内，vscode版本就可以进行调试了
+
 # autoSwitchCandE
 
 根据 Python 文件中的光标位置，自动切换微软拼音的中英文模式，减少写代码、注释和字符串时的手动切换。
@@ -7,6 +9,11 @@
 1. 通过 VS Code 扩展面板的 **Install from VSIX…（从 VSIX 安装）** 安装打包生成的 `.vsix` 文件。
 2. 选择微软拼音，打开 `.py` 文件；插件激活后默认启用。
 3. 状态栏右侧显示 **自动切换：已启用**。点击变为 **自动切换：已暂停**，再次点击恢复；恢复后的下一次光标移动会重新判断输入模式。
+
+4. 切换按钮和提示功能如下图所示：
+<img width="2561" height="596" alt="image" src="https://github.com/user-attachments/assets/a9dce060-0491-42c5-8126-dd5882f493d2" />
+<img width="2560" height="1392" alt="image" src="https://github.com/user-attachments/assets/539c84d5-3419-438c-b3c8-f63e8118041a" />
+
 
 当前根据光标或选区变化触发判断，规则按以下优先级执行：
 
@@ -42,20 +49,6 @@ C# 辅助程序定位前台 VS Code 的焦点控件，通过默认 IME 窗口和
 
 ## 编译与调试
 
-以下命令均在项目根目录执行，需要准备 Node.js、npm 和 VS Code：
-
-```powershell
-npm ci
-npm run compile
-```
-
-日常修改 `src/`，由编译生成 `out/`。持续编译和代码检查命令：
-
-```powershell
-npm run watch
-npm run lint
-```
-
 修改 C# 源码后，需要单独重新生成辅助程序；`npm run compile` 只编译 TypeScript。当前 Windows 环境可使用：
 
 ```powershell
@@ -65,7 +58,6 @@ npm run lint
 ```
 
 调试方式：
-
 - **运行功能**：选择 `Run Extension`，按 **Ctrl+F5** 打开扩展开发宿主，再打开 Python 文件。该启动方式已在当前环境验证可保持窗口打开。
 - **断点调试**：当前环境直接 F5 曾出现扩展宿主启动崩溃，可选择备用配置 **Run Extension (Attach)** 后按 F5。它先编译并启动开发宿主，再连接 `127.0.0.1:9333`；实际连接稳定性仍需验证。
 - 使用附加方式前，关闭上一轮开发宿主，避免端口冲突；停止附加调试后，开发窗口可能需要手动关闭。初始化可能早于附加完成，建议先在光标监听回调中设置断点。
@@ -83,7 +75,7 @@ npx @vscode/vsce package
 `.vscodeignore` 已排除开发依赖、测试、开发文档和 C# 源码；运行入口 `out/extension.js` 与辅助程序 `native/ImeMode.exe` 必须保留。当前尚未补充仓库地址和许可证，打包时可能出现对应提示。
 
 ## 下一步方向
-
+- 适配mac系统
 - 适配 `.py` 文件中更多中英文切换场景：跨行三引号、文档字符串、f-string 表达式、未闭合内容及边界位置。
 - 实现手动切换优先，减少重复请求，并处理快速移动光标时的异步请求顺序。
 - 完善拼音组词保护，以及文本编辑区、终端、搜索框等输入位置的区分。
