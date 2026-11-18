@@ -42,6 +42,7 @@ const node_child_process_1 = require("node:child_process");
 const MarkdownSceneRecognition_1 = require("./File_matching_rules/MarkdownSceneRecognition");
 const CSceneRecognition_1 = require("./File_matching_rules/CSceneRecognition");
 const PythonSceneRecognition_1 = require("./File_matching_rules/PythonSceneRecognition");
+const RustSceneRecognition_1 = require("./File_matching_rules/RustSceneRecognition");
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 function activate(context) {
@@ -99,7 +100,7 @@ function activate(context) {
         }
         const document = event.textEditor.document;
         // 只处理当前项目支持的语言
-        if (!['python', 'markdown', 'c'].includes(document.languageId)) {
+        if (!['python', 'markdown', 'c', 'rust'].includes(document.languageId)) {
             vscode.window.showWarningMessage('当前只支持python、markdown和c文件，请重新切换文件使用本插件');
             return;
         }
@@ -123,6 +124,9 @@ function activate(context) {
         }
         else if (document.languageId === 'c') {
             (0, CSceneRecognition_1.CSceneRecognition)(position, currentLine, requestIme);
+        }
+        else if (document.languageId === 'rust') {
+            (0, RustSceneRecognition_1.RustSceneRecognition)(position, currentLine, requestIme);
         }
     });
     const disposable = vscode.commands.registerCommand('autoswitchcande.helloWorld', () => {
